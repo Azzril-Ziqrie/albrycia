@@ -1,0 +1,58 @@
+/*
+ * Efek antarmuka (terinspirasi komponen Aceternity UI, ditulis ulang dengan CSS/JS murni).
+ *  1. 3D Card + Glare  → .product-card
+ *  2. Text Generate    → [data-fx="reveal"]
+ *  3. Infinite Marquee → .fx-marquee
+ * Semua efek mati otomatis untuk prefers-reduced-motion dan layar sentuh (tilt).
+ */
+
+/* ── 1. 3D Card + Glare ───────────────────────────────── */
+.product-card { perspective: 900px; }
+.product-card > a {
+  position: relative; transform-style: preserve-3d;
+  transform: rotateX(var(--fx-rx, 0deg)) rotateY(var(--fx-ry, 0deg));
+  transition: transform .5s cubic-bezier(.32, .72, 0, 1);
+  will-change: transform;
+}
+.product-card.is-tilting > a { transition: transform .08s linear; }
+.product-card > a::after {                      /* kilau krom mengikuti kursor */
+  content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: 0;
+  background: radial-gradient(260px circle at var(--fx-mx, 50%) var(--fx-my, 50%), rgba(255,255,255,.55), rgba(255,255,255,0) 62%);
+  mix-blend-mode: soft-light; transition: opacity .35s ease;
+}
+.product-card.is-tilting > a::after { opacity: 1; }
+.product-card .product-image img { transform: translate3d(var(--fx-ix, 0px), var(--fx-iy, 0px), 0) scale(1.04); transition: transform .5s cubic-bezier(.32, .72, 0, 1); }
+.product-card.is-tilting .product-image img { transition: transform .08s linear; }
+.product-card.sold-out > a { transform: none !important; }
+
+/* ── 2. Text Generate ─────────────────────────────────── */
+[data-fx="reveal"] .fx-word { display: inline-block; opacity: 0; filter: blur(10px); transform: translateY(.35em); }
+[data-fx="reveal"].is-revealed .fx-word {
+  opacity: 1; filter: blur(0); transform: none;
+  transition: opacity .7s ease, filter .7s ease, transform .8s cubic-bezier(.32, .72, 0, 1);
+  transition-delay: calc(var(--i) * 70ms);
+}
+
+/* ── 3. Infinite Marquee ──────────────────────────────── */
+.fx-marquee {
+  position: relative; overflow: hidden; background: #fff; color: #111; padding: 11px 0;
+  border-top: 1px solid rgba(0,0,0,.08); border-bottom: 1px solid rgba(0,0,0,.08);
+}
+.fx-marquee__track { display: flex; width: max-content; animation: fx-scroll var(--fx-marquee-duration, 34s) linear infinite; }
+.fx-marquee:hover .fx-marquee__track { animation-play-state: paused; }
+.fx-marquee__item {
+  display: inline-flex; align-items: center; gap: 22px; padding-right: 22px; white-space: nowrap;
+  font: 500 10px/1 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  letter-spacing: .4em; text-transform: uppercase;
+}
+.fx-marquee__item i { font-style: normal; opacity: .4; letter-spacing: 0; }
+@keyframes fx-scroll { to { transform: translateX(-50%); } }
+
+/* ── Aksesibilitas ────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .product-card > a, .product-card .product-image img { transform: none !important; transition: none; }
+  .product-card > a::after { display: none; }
+  [data-fx="reveal"] .fx-word { opacity: 1; filter: none; transform: none; }
+  .fx-marquee__track { animation: none; }
+}
+@media (hover: none) { .product-card > a { transform: none !important; } .product-card > a::after { display: none; } }

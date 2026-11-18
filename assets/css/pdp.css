@@ -1,0 +1,136 @@
+/*
+ * Halaman produk (product.php) — minimalis, lega, tanpa kotak.
+ * Galeri = tumpukan foto penuh yang digulir; info menempel di kanan; carousel geser di mobile.
+ */
+:root {
+  --pdp-ink: #111;
+  --pdp-muted: #7a776f;
+  --pdp-line: #e6e3db;
+  --pdp-soft: #ecebe7;
+  --pdp-spring: cubic-bezier(.32, .72, 0, 1);
+}
+
+.pdp {
+  display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(340px, .7fr); gap: 0; align-items: start;
+  background: #fff; text-transform: none; letter-spacing: 0; min-height: calc(100vh - 72px);
+}
+
+/* ── Galeri: foto penuh bertumpuk ── */
+.pdp-gallery { position: relative; display: grid; gap: 6px; background: #fff; }
+.pdp-shot { margin: 0; background: var(--pdp-soft); overflow: hidden; }
+.pdp-shot img, .main-product-image { display: block; width: 100%; height: auto; }
+.pdp-shot { opacity: 0; transform: translateY(18px); transition: opacity .9s ease, transform 1s var(--pdp-spring); }
+.pdp-shot.is-in { opacity: 1; transform: none; }
+.pdp-count {
+  position: sticky; bottom: 22px; justify-self: end; margin: -44px 22px 0 0; z-index: 3; pointer-events: none;
+  padding: 7px 12px; border-radius: 99px; font-size: 12px; font-weight: 600; letter-spacing: .04em; font-variant-numeric: tabular-nums;
+  color: var(--pdp-ink); background: rgba(255,255,255,.7); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  display: none;
+}
+
+/* ── Info: sangat lega, menempel saat galeri digulir ── */
+.pdp-info {
+  position: sticky; top: 72px; align-self: start; box-sizing: border-box;
+  min-height: calc(100vh - 72px); max-height: calc(100vh - 72px); overflow-y: auto; scrollbar-width: none;
+  padding: clamp(28px, 4.5vw, 72px) clamp(24px, 4vw, 64px) 40px; display: flex; flex-direction: column;
+}
+.pdp-info::-webkit-scrollbar { display: none; }
+.pdp-eyebrow { font-size: 11.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--pdp-muted); margin-bottom: 18px; }
+.product-title { margin: 0 0 14px; font-size: clamp(32px, 3.4vw, 52px); line-height: 1; font-weight: 500; letter-spacing: -.035em; text-transform: none; }
+.product-price { display: flex; align-items: baseline; gap: 12px; font-variant-numeric: tabular-nums; }
+.price-current { font-size: 19px; font-weight: 400; letter-spacing: -.005em; }
+.price-compare { font-size: 15px; color: var(--pdp-muted); text-decoration: line-through; }
+.meta-row { margin-top: 10px; font-size: 13px; color: var(--pdp-muted); display: flex; gap: 8px; flex-wrap: wrap; }
+.no-size-note { display: none; }
+
+.option-block { margin-top: 34px; }
+.size-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.section-label { font-size: 13px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.size-chart-link { font-size: 13px; color: var(--pdp-muted); text-decoration: underline; text-underline-offset: 3px; background: none; border: 0; cursor: pointer; font-family: inherit; text-transform: none; }
+.size-select-wrap { position: relative; }
+.size-select-wrap::after { content: "⌄"; position: absolute; right: 2px; top: 50%; transform: translateY(-58%); pointer-events: none; color: var(--pdp-muted); }
+.size-select { width: 100%; height: 48px; padding: 0 28px 0 0; border: 0; border-bottom: 1px solid var(--pdp-ink); border-radius: 0; background: transparent; font: inherit; font-size: 16px; text-transform: none; letter-spacing: 0; appearance: none; -webkit-appearance: none; }
+.size-select:focus { outline: none; border-bottom-width: 2px; }
+.sold-out-text { font-size: 14px; font-weight: 600; color: #b3261e; }
+
+/* ── Beli ── */
+.pdp-buy { margin-top: 40px; display: grid; gap: 14px; }
+.qty-wrap { display: inline-grid; grid-template-columns: 40px 36px 40px; height: 44px; width: max-content; margin: 0; border: 0; border-radius: 99px; background: #f3f2ee; overflow: hidden; }
+.qty-btn, .qty-value { border: 0; background: transparent; display: flex; align-items: center; justify-content: center; font: inherit; font-size: 16px; }
+.qty-btn { cursor: pointer; transition: background .15s, transform .25s var(--pdp-spring); }
+.qty-btn:hover { background: #e9e7e1; }
+.qty-btn:active { transform: scale(.88); }
+.qty-value { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cart-btn {
+  width: 100%; height: 58px; margin: 0; border: 0; border-radius: 99px; background: var(--pdp-ink); color: #fff;
+  font: 500 15px/1 inherit; font-family: inherit; letter-spacing: .01em; text-transform: none; cursor: pointer;
+  transition: transform .4s var(--pdp-spring), background .2s, box-shadow .3s;
+}
+.cart-btn:hover:not(:disabled) { background: #000; box-shadow: 0 10px 30px rgba(0,0,0,.18); }
+.cart-btn:active:not(:disabled) { transform: scale(.975); transition-duration: .1s; }
+.cart-btn:disabled { background: #d4d1c9; cursor: not-allowed; }
+.pdp-note { margin: 18px 0 0; font-size: 12.5px; line-height: 1.7; color: var(--pdp-muted); }
+
+/* ── Akordeon: hanya garis tipis ── */
+.pdp-details { margin-top: 44px; }
+.info-divider { display: none; }
+.accordion { border-top: 1px solid var(--pdp-line); }
+.accordion:last-of-type { border-bottom: 1px solid var(--pdp-line); }
+.accordion-trigger { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 20px 0; background: none; border: 0; font: 500 15px/1.2 inherit; font-family: inherit; letter-spacing: 0; text-transform: none; color: var(--pdp-ink); cursor: pointer; }
+.accordion-chevron { font-size: 0; position: relative; width: 12px; height: 12px; }
+.accordion-chevron::before, .accordion-chevron::after { content: ""; position: absolute; left: 0; top: 5.5px; width: 12px; height: 1.2px; background: var(--pdp-ink); transition: transform .4s var(--pdp-spring); }
+.accordion-chevron::after { transform: rotate(90deg); }
+.accordion-trigger.open .accordion-chevron::after { transform: rotate(0deg); }
+.accordion-panel { max-height: 0; overflow: hidden; transition: max-height .5s var(--pdp-spring); }
+.accordion-panel__inner { padding: 0 0 22px; font-size: 14.5px; line-height: 1.8; color: #55524c; text-transform: none; letter-spacing: 0; }
+
+/* ── Produk lain ── */
+.pdp-related { padding: clamp(48px, 7vw, 96px) clamp(20px, 4vw, 56px) clamp(56px, 8vw, 110px); background: #fff; border-top: 1px solid var(--pdp-line); text-transform: none; letter-spacing: 0; }
+.pdp-related h2 { margin: 0 0 28px; font-size: clamp(22px, 2.2vw, 30px); font-weight: 500; letter-spacing: -.03em; }
+.pdp-related__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(10px, 1.5vw, 22px); max-width: 1500px; }
+.rel-card { display: block; text-decoration: none; color: inherit; }
+.rel-card__img { aspect-ratio: 4 / 5; overflow: hidden; background: var(--pdp-soft); }
+.rel-card__img img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 1s var(--pdp-spring); }
+.rel-card:hover .rel-card__img img { transform: scale(1.04); }
+.rel-card__name { margin-top: 14px; font-size: 14px; font-weight: 500; }
+.rel-card__price { margin-top: 3px; font-size: 13px; color: var(--pdp-muted); font-variant-numeric: tabular-nums; }
+
+/* ── Bar keranjang melayang (mobile) ── */
+.pdp-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 55; display: none; align-items: center; gap: 14px;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,.78); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+  border-top: 1px solid rgba(0,0,0,.08); transform: translateY(110%); transition: transform .55s var(--pdp-spring);
+}
+.pdp-bar.is-visible { transform: none; }
+.pdp-bar__text { min-width: 0; flex: 1; }
+.pdp-bar__name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pdp-bar__price { font-size: 13px; color: var(--pdp-muted); font-variant-numeric: tabular-nums; }
+.pdp-bar__btn { height: 46px; padding: 0 28px; border: 0; border-radius: 99px; background: var(--pdp-ink); color: #fff; font: 500 14px/1 inherit; font-family: inherit; cursor: pointer; transition: transform .35s var(--pdp-spring); }
+.pdp-bar__btn:active { transform: scale(.95); }
+.pdp-bar__btn:disabled { background: #d4d1c9; }
+
+/* ── Responsif ── */
+@media (max-width: 1100px) { .pdp { grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr); } .pdp-related__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) {
+  .pdp { grid-template-columns: 1fr; min-height: 0; }
+  /* galeri jadi carousel geser */
+  .pdp-gallery { display: flex; overflow-x: auto; gap: 0; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .pdp-gallery::-webkit-scrollbar { display: none; }
+  .pdp-shot { flex: 0 0 100%; scroll-snap-align: start; opacity: 1; transform: none; }
+  .pdp-count { display: block; position: absolute; right: 14px; bottom: 14px; margin: 0; }
+  .pdp-info { position: static; min-height: 0; max-height: none; overflow: visible; padding: 28px 20px 36px; }
+  .pdp-bar { display: flex; }
+  .pdp-related { padding-bottom: 110px; }
+}
+@media (max-width: 480px) { .pdp-related__grid { gap: 10px; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .pdp-shot { opacity: 1; transform: none; transition: none; }
+  .rel-card__img img, .accordion-panel, .pdp-bar { transition-duration: .01ms; }
+  .rel-card:hover .rel-card__img img { transform: none; }
+}
+@media (prefers-reduced-transparency: reduce) { .pdp-bar, .pdp-count { background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; } }
+
+/* Mobile: dua kolom harus genap — sembunyikan kartu ganjil terakhir agar tidak ada yang sendirian */
+@media (max-width: 900px) { .pdp-related__grid .rel-card:last-child:nth-child(odd) { display: none; } }

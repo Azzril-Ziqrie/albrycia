@@ -1,0 +1,95 @@
+/* Sidebar admin — materi translusen, gerak berbasis pegas, hormati reduced-motion */
+:root {
+  --sidebar-w: 248px;
+  --line: #dcd8cf;
+  --ink: #111;
+  --muted: #7a776f;
+  --surface: #faf9f5;
+  --spring: cubic-bezier(.32, .72, 0, 1);
+}
+
+.sidebar {
+  position: fixed; inset: 0 auto 0 0;
+  width: var(--sidebar-w);
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 20px 14px 16px;
+  background: rgba(250, 249, 245, .78);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border-right: 1px solid var(--line);
+  z-index: 40;
+  overflow-y: auto;
+}
+.sidebar__brand { display: flex; justify-content: center; padding: 4px 0 18px; }
+.sidebar__brand img { height: 34px; width: auto; object-fit: contain; }
+.sidebar__nav { display: flex; flex-direction: column; gap: 18px; flex: 1; }
+
+.nav-group { display: flex; flex-direction: column; gap: 2px; }
+.nav-group__label {
+  padding: 0 12px 6px;
+  font-size: 10.5px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase;
+  color: var(--muted);
+}
+
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  min-height: 40px; padding: 0 12px;
+  border-radius: 10px;
+  font-size: 13.5px; letter-spacing: -.005em;
+  color: #3b3a36;
+  transition: background .18s ease, color .18s ease, transform .35s var(--spring);
+}
+.nav-item svg {
+  width: 18px; height: 18px; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 1.7;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.nav-item:hover { background: rgba(17, 17, 17, .05); }
+.nav-item:active { transform: scale(.97); transition-duration: .1s; }   /* respons saat ditekan */
+.nav-item.is-active { background: var(--ink); color: #fff; font-weight: 600; }
+.nav-item:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.sidebar__storefront { border-top: 1px solid var(--line); border-radius: 0 0 10px 10px; margin-top: 4px; padding-top: 4px; }
+
+.nav-toggle, .nav-scrim { display: none; }
+
+body.has-sidebar { padding-left: var(--sidebar-w); }
+
+@media (max-width: 900px) {
+  body.has-sidebar { padding-left: 0; }
+  .sidebar {
+    transform: translateX(-102%);
+    transition: transform .5s var(--spring);
+    box-shadow: none;
+    background: rgba(250, 249, 245, .92);
+  }
+  body.nav-open .sidebar { transform: none; box-shadow: 0 20px 60px rgba(0, 0, 0, .18); }
+  .nav-scrim {
+    display: block; position: fixed; inset: 0; z-index: 30;
+    background: rgba(0, 0, 0, .28);
+    opacity: 0; pointer-events: none;
+    transition: opacity .35s ease;
+  }
+  body.nav-open .nav-scrim { opacity: 1; pointer-events: auto; }
+  .nav-toggle {
+    display: grid; place-items: center;
+    position: fixed; top: 12px; left: 12px; z-index: 35;
+    width: 44px; height: 44px; border-radius: 12px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .8);
+    -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+    cursor: pointer;
+  }
+  .nav-toggle svg { width: 20px; height: 20px; fill: none; stroke: var(--ink); stroke-width: 1.8; stroke-linecap: round; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .nav-scrim, .nav-item { transition-duration: .01ms !important; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .sidebar { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+
+/* Sidebar tidak boleh ikut gaya link halaman (mis. garis bawah) */
+.sidebar a, .sidebar a:hover { text-decoration: none; }

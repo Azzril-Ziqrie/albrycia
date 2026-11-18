@@ -1,0 +1,200 @@
+/*
+ * Menyamakan halaman admin lama dengan desain dashboard.php (sidebar, kartu lembut,
+ * tipografi bernapas). Dimuat PALING AKHIR dan hanya aktif di <body class="has-sidebar">.
+ * Dipakai bersama assets/css/admin-sidebar.css. Cabut kedua <link> untuk kembali ke tampilan lama.
+ */
+
+body.has-sidebar {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #fff; color: var(--ink);
+}
+
+/* ── Topbar lama digantikan sidebar ── */
+body.has-sidebar .topbar { display: none; }
+
+/* ── Area konten: tanpa bingkai samping, lega, tengah ── */
+body.has-sidebar .wrap,
+body.has-sidebar .layout {
+  max-width: 1280px; margin: 0 auto; min-height: auto;
+  padding: 32px 36px 64px;
+  border: 0;
+}
+body.has-sidebar .wrap > *:last-child { margin-bottom: 0; }
+
+/* ── Bagian & panel menjadi kartu ── */
+body.has-sidebar .hero,
+body.has-sidebar .section,
+body.has-sidebar .panel,
+body.has-sidebar .page-header + .section {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+}
+body.has-sidebar .hero,
+body.has-sidebar .section,
+body.has-sidebar .panel { margin-bottom: 14px; }
+body.has-sidebar .section-grid,
+body.has-sidebar .layout { gap: 14px; }
+body.has-sidebar .section:nth-child(2n) { border-right: 1px solid var(--line); }
+body.has-sidebar .hero-right { border-left-color: var(--line); }
+
+body.has-sidebar .section-head,
+body.has-sidebar .panel-head {
+  background: #fff;
+  border-bottom: 0;
+  padding: 18px 22px 0;
+  text-transform: none;
+  font-size: 15px; font-weight: 600; letter-spacing: -.01em;
+}
+body.has-sidebar .section-body,
+body.has-sidebar .panel-body { padding: 18px 22px 22px; }
+
+/* ── Judul halaman ── */
+body.has-sidebar .eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted);
+}
+body.has-sidebar .headline,
+body.has-sidebar .page-header h1 {
+  text-transform: none; font-weight: 600; font-size: 30px; line-height: 1.1; letter-spacing: -.022em;
+}
+body.has-sidebar .subcopy { font-size: 14px; color: #5a5852; }
+
+/* ── Tombol ── */
+body.has-sidebar .btn,
+body.has-sidebar .btn-secondary,
+body.has-sidebar .mini-btn,
+body.has-sidebar .form-actions button,
+body.has-sidebar button[type="submit"] {
+  border-radius: 12px; text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 13.5px;
+  transition: transform .35s var(--spring), background-color .2s ease, border-color .2s ease;
+}
+body.has-sidebar .btn,
+body.has-sidebar .btn-secondary { height: 44px; }
+body.has-sidebar .btn:not(:disabled):active,
+body.has-sidebar .btn-secondary:active,
+body.has-sidebar .mini-btn:active,
+body.has-sidebar button[type="submit"]:not(:disabled):active { transform: scale(.97); transition-duration: .1s; }
+
+/* ── Form ── */
+body.has-sidebar input[type="text"],
+body.has-sidebar input[type="number"],
+body.has-sidebar input[type="email"],
+body.has-sidebar input[type="password"],
+body.has-sidebar input[type="url"],
+body.has-sidebar input[type="datetime-local"],
+body.has-sidebar input[type="date"],
+body.has-sidebar select,
+body.has-sidebar textarea,
+body.has-sidebar .form-input,
+body.has-sidebar .form-select,
+body.has-sidebar .form-textarea {
+  border: 1px solid var(--line); border-radius: 10px; background: #fff;
+  font-family: inherit; transition: border-color .15s ease, box-shadow .15s ease;
+}
+body.has-sidebar input:focus,
+body.has-sidebar select:focus,
+body.has-sidebar textarea:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+body.has-sidebar label { font-size: 12.5px; }
+
+/* ── Tabel ── */
+body.has-sidebar .table-wrap { border: 0; background: transparent; margin: 0 -22px -22px; overflow-x: auto; }
+body.has-sidebar table { border-collapse: collapse; }
+body.has-sidebar th {
+  background: transparent; font-size: 11px; font-weight: 600; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--muted);
+}
+body.has-sidebar th, body.has-sidebar td { padding: 13px 22px; border-bottom: 0; border-top: 1px solid #f0eee8; }
+body.has-sidebar thead th { border-top: 0; }
+body.has-sidebar tbody tr { transition: background .15s; }
+body.has-sidebar tbody tr:hover { background: #faf9f5; }
+body.has-sidebar .thumb-mini { border-radius: 10px; }
+
+/* ── Status & filter berbentuk pil ── */
+body.has-sidebar .status {
+  border: 0; border-radius: 99px; padding: 4px 10px; font-size: 11.5px; font-weight: 500;
+  text-transform: capitalize; letter-spacing: 0; background: #f1efe9; color: #55534d;
+}
+body.has-sidebar .status.paid, body.has-sidebar .status.live { background: #e3f4ea; color: #1f7a45; }
+body.has-sidebar .status.waiting { background: #fff1d6; color: #8a5a00; }
+body.has-sidebar .status.failed { background: #fbe4e1; color: #b3261e; }
+body.has-sidebar .filters { gap: 6px; }
+body.has-sidebar .filter {
+  border-radius: 99px; text-transform: none; letter-spacing: 0; font-size: 13px;
+  transition: background-color .2s ease, color .2s ease, border-color .2s ease;
+}
+
+/* ── Notifikasi ── */
+body.has-sidebar .notice,
+body.has-sidebar .alert { border-radius: 12px; text-transform: none; letter-spacing: 0; }
+
+/* ── Mobile ── */
+@media (max-width: 900px) {
+  body.has-sidebar .wrap,
+  body.has-sidebar .layout { padding: 72px 18px 48px; }
+  body.has-sidebar .headline,
+  body.has-sidebar .page-header h1 { font-size: 26px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.has-sidebar .btn, body.has-sidebar .btn-secondary, body.has-sidebar tbody tr, body.has-sidebar .filter { transition: none; }
+}
+
+
+/* ── Perbaikan hasil tinjauan visual ── */
+body.has-sidebar .diagnostic.is-ok { display: none; }                 /* kotak diagnostik dev: tampil hanya saat ada masalah */
+body.has-sidebar .diagnostic { border: 1px solid var(--line); border-radius: 12px; background: #faf9f5; }
+body.has-sidebar .hero:not(:has(.hero-right)) { grid-template-columns: 1fr; }
+body.has-sidebar .section-body,
+body.has-sidebar .panel-body { overflow-x: auto; }                     /* tabel lebar tidak terpotong */
+
+body.has-sidebar input[type="checkbox"],
+body.has-sidebar input[type="radio"] {
+  width: 18px; height: 18px; min-width: 18px; padding: 0; margin: 0;
+  accent-color: var(--ink); border-radius: 5px; box-shadow: none; vertical-align: middle;
+}
+body.has-sidebar .checkbox-row, body.has-sidebar .check-row { gap: 10px; align-items: center; }
+
+/* Halaman bergaya lama (mis. set-diskon): .head/.title/.form-box */
+body.has-sidebar .wrap { background: transparent; }
+body.has-sidebar .head { border: 0; padding: 0 0 20px; }
+body.has-sidebar .title {
+  text-transform: none; font-weight: 600; font-size: 30px; line-height: 1.1; letter-spacing: -.022em; margin: 0 0 8px;
+}
+body.has-sidebar .wrap > .panel { border: 0; border-radius: 0; padding: 0; margin: 0; background: transparent; }
+body.has-sidebar .form-box,
+body.has-sidebar .info-box { border: 1px solid var(--line); border-radius: 14px; background: #faf9f5; }
+body.has-sidebar .notice { margin: 0 0 16px; }
+
+/* ── Tata letak grid: kolom boleh menyempit, konten lebar tidak meluber ── */
+body.has-sidebar .grid,
+body.has-sidebar .section-grid,
+body.has-sidebar .layout { min-width: 0; }
+body.has-sidebar .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+body.has-sidebar .grid > *,
+body.has-sidebar .section-grid > *,
+body.has-sidebar .layout > * { min-width: 0; }
+body.has-sidebar .card,
+body.has-sidebar .grid > section,
+body.has-sidebar .grid > div { border-radius: 16px; }
+@media (max-width: 900px) { body.has-sidebar .grid { grid-template-columns: 1fr; } }
+
+/* ── Kepala bagian di dalam kartu (mis. "Product Sizes") sejajar dengan isi ── */
+body.has-sidebar .section-body .section-head,
+body.has-sidebar .panel-body .panel-head { padding: 18px 0 8px; }
+
+/* ── Navigasi tab lama diganti sidebar ── */
+body.has-sidebar .subnav { display: none; }
+
+/* Tabel di dalam kartu: boleh menyempit dan membungkus teks (tetap bisa digulir bila benar-benar sempit) */
+body.has-sidebar table { min-width: 0; width: 100%; }
+body.has-sidebar .sidebar a { text-decoration: none; }
+
+/* Sudut kartu rapi: isi kartu dipotong mengikuti lengkungan (tabel lebar menggulir di dalam .panel-body/.table-wrap) */
+body.has-sidebar .hero,
+body.has-sidebar .section,
+body.has-sidebar .panel { overflow: clip; }
+body.has-sidebar .wrap > .panel { overflow: visible; }
+
+/* Tabel yang lebih lebar dari kartunya menggulir sendiri, tidak terpotong */
+body.has-sidebar .panel table,
+body.has-sidebar .section table { display: block; max-width: 100%; overflow-x: auto; }
