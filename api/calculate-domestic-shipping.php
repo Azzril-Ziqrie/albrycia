@@ -33,6 +33,7 @@ register_shutdown_function(function () {
 });
 
 $config = require __DIR__ . '/../config/rajaongkir.php';
+require_once __DIR__ . '/../includes/api_cache.php';
 require_once __DIR__ . '/../includes/shipping_quote.php';
 
 function normalizeDomesticServices(array $raw): array
@@ -122,23 +123,37 @@ $requestPayload = [
 $postFields = http_build_query($requestPayload);
 $url = rtrim((string) $config['base_url'], '/') . '/calculate/domestic-cost';
 
-$ch = curl_init($url);
-curl_setopt_array($ch, [
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_POST => true,
-    CURLOPT_POSTFIELDS => $postFields,
-    CURLOPT_HTTPHEADER => [
-        'key: ' . $config['api_key'],
-        'Content-Type: application/x-www-form-urlencoded',
-        'Accept: application/json',
-    ],
-    CURLOPT_TIMEOUT => 30,
-]);
-
-$response = curl_exec($ch);
-$httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$curlError = curl_error($ch);
-curl_close($ch);
+$cacheKey = implode('|', ['cost-dom', $requestPayload['origin'], $destination, $courier, $weight, $price]);
+$cached   = apiCacheGet($cacheKey, 43200);
+if ($cached !== null) {
+    $response = $cached; $httpCode = 200; $curlError = '';
+} else {
+    apiRateLimit('cost', 60, 3600);
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $postFields,
+        CURLOPT_HTTPHEADER => [
+            'key: ' . $config['api_key'],
+            'Content-Type: application/x-www-form-urlencoded',
+            'Accept: application/json',
+        ],
+        CURLOPT_TIMEOUT => 30,
+    ]);
+    
+    $response = curl_exec($ch);
+    $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+    $apiOk = $response !== false && $httpCode >= 200 && $httpCode < 300 && is_array(json_decode((string)$response, true));
+    if ($apiOk) {
+        apiCacheSet($cacheKey, (string)$response);
+    } elseif (($stale = apiCacheGet($cacheKey, 43200, true)) !== null) {
+        // API gagal / kuota habis: pakai data lama daripada pembeli tidak bisa checkout
+        $response = $stale; $httpCode = 200; $curlError = '';
+    }
+}
 
 if ($response === false) {
     http_response_code(500);

@@ -33,6 +33,7 @@ register_shutdown_function(function () {
 });
 
 $config = require __DIR__ . '/../config/rajaongkir.php';
+require_once __DIR__ . '/../includes/api_cache.php';
 
 $search = trim((string) ($_GET['search'] ?? ''));
 $limit = (int) ($_GET['limit'] ?? 10);
@@ -42,11 +43,11 @@ if ($limit <= 0) {
     $limit = 10;
 }
 
-if ($search === '') {
+if (mb_strlen($search) < 3) {
     http_response_code(422);
     echo json_encode([
         'success' => false,
-        'message' => 'Search is required.',
+        'message' => 'Search must be at least 3 characters.',
     ], JSON_PRETTY_PRINT);
     exit;
 }
@@ -56,20 +57,34 @@ $url = rtrim((string) $config['base_url'], '/') .
     '&limit=' . $limit .
     '&offset=' . $offset;
 
-$ch = curl_init($url);
-curl_setopt_array($ch, [
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_HTTPHEADER => [
-        'key: ' . $config['api_key'],
-        'Accept: application/json',
-    ],
-    CURLOPT_TIMEOUT => 30,
-]);
-
-$response = curl_exec($ch);
-$httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$curlError = curl_error($ch);
-curl_close($ch);
+$cacheKey = 'dest-intl|' . mb_strtolower($search) . '|' . $limit . '|' . $offset;
+$cached   = apiCacheGet($cacheKey, 2592000);
+if ($cached !== null) {
+    $response = $cached; $httpCode = 200; $curlError = '';
+} else {
+    apiRateLimit('dest', 120, 3600);
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => [
+            'key: ' . $config['api_key'],
+            'Accept: application/json',
+        ],
+        CURLOPT_TIMEOUT => 30,
+    ]);
+    
+    $response = curl_exec($ch);
+    $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+    $apiOk = $response !== false && $httpCode >= 200 && $httpCode < 300 && is_array(json_decode((string)$response, true));
+    if ($apiOk) {
+        apiCacheSet($cacheKey, (string)$response);
+    } elseif (($stale = apiCacheGet($cacheKey, 2592000, true)) !== null) {
+        // API gagal / kuota habis: pakai data lama daripada pembeli tidak bisa checkout
+        $response = $stale; $httpCode = 200; $curlError = '';
+    }
+}
 
 if ($response === false) {
     http_response_code(500);

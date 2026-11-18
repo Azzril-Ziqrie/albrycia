@@ -1000,17 +1000,33 @@ details.opt > summary:hover{text-decoration:underline}
       resetShipping();
     }
 
+    const destCache = new Map();   // query yang sama tidak dipanggil ulang dalam satu sesi halaman
+    let destTimer = null;
+    let destSeq = 0;               // abaikan respons lama yang datang terlambat
+
+    function scheduleLoadDestinations() {
+      clearTimeout(destTimer);
+      destTimer = setTimeout(loadDestinations, 450);
+    }
+
     async function loadDestinations() {
-      if (destSearch.value.trim().length < 2) {
-        destSelect.innerHTML = '<option value="">Type at least 2 characters</option>';
+      if (destSearch.value.trim().length < 3) {
+        destSelect.innerHTML = '<option value="">Type at least 3 characters</option>';
         return;
       }
+      const seq = ++destSeq;
       const endpoint = shippingModeEl.value === 'domestic'
         ? 'api/get-domestic-destinations.php'
         : 'api/get-international-destinations.php';
       try {
-        const res    = await fetch(endpoint + '?search=' + encodeURIComponent(destSearch.value.trim()) + '&limit=10');
-        const result = await res.json();
+        const cacheKeyJs = shippingModeEl.value + '|' + destSearch.value.trim().toLowerCase();
+        let result = destCache.get(cacheKeyJs);
+        if (!result) {
+          const res = await fetch(endpoint + '?search=' + encodeURIComponent(destSearch.value.trim()) + '&limit=10');
+          result = await res.json();
+          if (result.success) destCache.set(cacheKeyJs, result);
+        }
+        if (seq !== destSeq) return;
         if (!result.success) { destSelect.innerHTML = '<option value="">Error loading destination</option>'; return; }
         const rows = Array.isArray(result.raw?.data) ? result.raw.data : [];
         destSelect.innerHTML = '<option value="">Choose destination</option>';
@@ -1126,7 +1142,7 @@ details.opt > summary:hover{text-decoration:underline}
 
     /* ── init ───────────────────────────────────────── */
     shippingModeEl.addEventListener('change', updateModeUI);
-    destSearch.addEventListener('input', loadDestinations);
+    destSearch.addEventListener('input', scheduleLoadDestinations);
     updateModeUI();
     updateGrandTotal(Number(shippingCostInput.value || 0));
 
