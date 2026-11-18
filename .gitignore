@@ -1,0 +1,14 @@
+# Rahasia & konfigurasi produksi: jangan di-commit
+config/secrets.php
+config/database.php
+config/database.local.php
+config/env.php
+config/admin_auth.php
+config/rajaongkir.php
+
+# Data runtime
+uploads/*
+!uploads/.htaccess
+invoices/*
+!invoices/.htaccess
+*.log
