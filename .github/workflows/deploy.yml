@@ -1,0 +1,65 @@
+name: Deploy to public_html
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Satu deploy dalam satu waktu; deploy baru menunggu yang lama selesai.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout HEAD
+        uses: actions/checkout@v4
+
+      - name: Cek sintaks PHP
+        run: |
+          sudo apt-get install -y -qq php-cli > /dev/null
+          fail=0
+          while IFS= read -r f; do
+            php -l "$f" > /dev/null || fail=1
+          done < <(git ls-files '*.php' | grep -v -e '^vendor/' -e '^_unused/')
+          exit $fail
+
+      - name: Upload ke public_html via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./
+          server-dir: /public_html/
+          # File yang dikecualikan TIDAK diunggah dan TIDAK dihapus di server.
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            dev/**
+            docs/**
+            _unused/**
+            **/*.log
+            .ftpquota
+            .user.ini
+            composer.json
+            composer.lock
+            # Konfigurasi & rahasia produksi: diurus manual di server
+            config/database.php
+            config/database.local.php
+            config/secrets.php
+            config/env.php
+            config/admin_auth.php
+            config/rajaongkir.php
+            # Data runtime: jangan ditimpa
+            uploads/**
+            invoices/**
