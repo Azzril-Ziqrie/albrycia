@@ -5,7 +5,7 @@ require_once __DIR__ . '/config/site.php';
 header('Content-Type: text/plain; charset=utf-8');
 
 $blocked = [
-    '/admin/', '/api/', '/payments/', '/invoices/', '/uploads/payment-proofs/',
+    '/admin/', '/api/', '/invoices/', '/uploads/payment-proofs/',
     '/checkout', '/payment', '/cart', '/register', '/login', '/logout',
     '/kasera-webhook', '/invoice-download', '/set-currency', '/currency',
 ];

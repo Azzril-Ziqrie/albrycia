@@ -9,6 +9,7 @@ if (isset($_GET['currency']) && in_array(strtoupper($_GET['currency']), ['IDR', 
 
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/currency_helper.php';
+require_once __DIR__ . '/includes/shipping_quote.php';
 
 /* ── brand constants ─────────────────────────────────── */
 $brandName = 'ALBRYCIA';
@@ -371,9 +372,17 @@ $form = [
 // Pastikan proses checkout hanya jalan jika POST biasa (bukan request AJAX qty / hapus)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['ajax_update_qty']) && !isset($_POST['ajax_remove_item'])) {
     foreach ($form as $key => $value) $form[$key] = trim((string)($_POST[$key] ?? ''));
-    $selectedShippingCost = (float)$form['shipping_cost'];
+    // Ongkir TIDAK dipercaya dari browser: hanya nilai yang ditandatangani endpoint ongkir yang diterima.
+    $shippingMode  = $form['shipping_mode'] === 'international' ? 'international' : 'domestic';
+    $verifiedIdr   = shippingQuoteVerify(
+        $shippingMode, trim((string)($_POST['shipping_destination'] ?? '')),
+        $form['courier_code'], $form['courier_service'],
+        (int)($_POST['shipping_cost_idr'] ?? 0), (string)($_POST['shipping_token'] ?? '')
+    );
+    $selectedShippingCost = $verifiedIdr === null ? 0.0
+        : ($currency === 'USD' ? round($verifiedIdr / $usdRateFromIdr, 2) : (float)$verifiedIdr);
+    $form['shipping_cost'] = (string)$selectedShippingCost;
     $grandTotal = $subtotal + $selectedShippingCost;
-    $shippingCostIdr = (float)($_POST['shipping_cost_idr'] ?? 0);
 
     if (!$cartItems) {
         $error = 'No items available for checkout.';
@@ -385,8 +394,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['ajax_update_qty']) &
         $error = 'Please calculate shipping and choose a courier service.';
     } elseif (!filter_var($form['email'], FILTER_VALIDATE_EMAIL)) {
         $error = 'Please enter a valid email address.';
-    } elseif ($selectedShippingCost < 0) {
-        $error = 'Invalid shipping amount.';
+    } elseif ($verifiedIdr === null) {
+        $error = 'Shipping quote is invalid or expired. Please choose a shipping service again.';
     } else {
         try {
             validateCheckoutStock($pdo, $cartItems);
@@ -729,6 +738,8 @@ details.opt > summary:hover{text-decoration:underline}
           <input type="hidden" name="courier_service"   id="courier_service"   value="<?= htmlspecialchars($form['courier_service']) ?>">
           <input type="hidden" name="shipping_cost"     id="shipping_cost"     value="<?= htmlspecialchars($form['shipping_cost']) ?>">
           <input type="hidden" name="shipping_cost_idr" id="shipping_cost_idr" value="0">
+          <input type="hidden" name="shipping_token"       id="shipping_token"       value="">
+          <input type="hidden" name="shipping_destination" id="shipping_destination" value="">
         </section>
 
         <div class="form-actions">
@@ -830,6 +841,8 @@ details.opt > summary:hover{text-decoration:underline}
     const courierServiceInput  = document.getElementById('courier_service');
     const shippingCostInput    = document.getElementById('shipping_cost');
     const shippingCostIdrInput = document.getElementById('shipping_cost_idr');
+    const shippingTokenInput   = document.getElementById('shipping_token');
+    const shippingDestInput    = document.getElementById('shipping_destination');
     const shippingDisplay      = document.getElementById('shippingDisplay');
     const grandTotalDisplay    = document.getElementById('grandTotalDisplay');
     const heroGrandTotal       = document.getElementById('heroGrandTotal');
@@ -970,6 +983,7 @@ details.opt > summary:hover{text-decoration:underline}
       shippingOptionsEl.textContent = 'Select destination and courier to see shipping options.';
       courierCodeInput.value = ''; courierServiceInput.value = '';
       shippingCostInput.value = '0'; shippingCostIdrInput.value = '0';
+      shippingTokenInput.value = ''; shippingDestInput.value = '';
       updateGrandTotal(0);
     }
 
@@ -1038,6 +1052,7 @@ details.opt > summary:hover{text-decoration:underline}
 
       courierCodeInput.value = ''; courierServiceInput.value = '';
       shippingCostInput.value = '0'; shippingCostIdrInput.value = '0';
+      shippingTokenInput.value = ''; shippingDestInput.value = '';
       updateGrandTotal(0);
 
       if (!destination || !courier) {
@@ -1090,6 +1105,8 @@ details.opt > summary:hover{text-decoration:underline}
             courierCodeInput.value     = courier;
             courierServiceInput.value  = service;
             shippingCostIdrInput.value = costIdr;
+            shippingTokenInput.value   = row.token || '';
+            shippingDestInput.value    = destination;
             shippingCostInput.value    = currency === 'USD' ? costShown.toFixed(2) : costIdr;
             updateGrandTotal(costIdr);
             showToast(service + ' selected');

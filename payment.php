@@ -80,138 +80,173 @@ $grandDisplay    = convertForDisplay((float)($order['grand_total'] ?? 0), $order
 $paymentStatus   = strtoupper(str_replace('_', ' ', $order['payment_status']));
 $grandTotalFmt   = formatMoney($grandDisplay, $currentCurrency);
 $orderNum        = htmlspecialchars($order['order_number']);
+
+// Item order untuk ringkasan (sama seperti panel kanan di checkout)
+$itemStmt = $pdo->prepare('SELECT product_name, size_name, quantity, line_total, thumbnail FROM order_items WHERE order_id = :oid ORDER BY id ASC');
+$itemStmt->execute(['oid' => (int)$order['id']]);
+$orderItems = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <?php seoHead(['title' => 'Payment Confirmation — ' . BRAND_NAME, 'path' => 'payment', 'noindex' => true]); ?>
+  <?php seoHead(['title' => 'Payment — ' . BRAND_NAME, 'path' => 'payment', 'noindex' => true]); ?>
   <style>
+:root{--ink:#1a1a1a;--muted:#707070;--line:#d9d9d9;--soft:#f5f5f5;--panel:#fafafa;--radius:10px;--ease:cubic-bezier(.32,.72,0,1)}
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{background:#fff;color:#111;font-family:Helvetica,Helvetica,Arial,sans-serif;text-transform:uppercase;animation:pageFadeIn .4s ease forwards;letter-spacing:.04em}
-a{color:inherit;text-decoration:none}
-img{display:block}
-button,input,select,textarea{font:inherit}
-button{cursor:pointer}
+body{background:#fff;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45;animation:pageFadeIn .3s ease forwards;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+img{display:block;max-width:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 
-.navbar{width:100%;height:44px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:60;border-bottom:1px solid #f0f0f0}
-.nav-left{display:flex;align-items:center}
-.nav-center{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center}
-.nav-right{display:flex;align-items:center;gap:20px}
-.brand-mark img{height:32px;width:auto;display:block;border-radius:50%}
-.nav-btn{background:none;border:none;font-size:10px;letter-spacing:.12em;color:#111;cursor:pointer;text-transform:uppercase}
+/* ── layout (sama dengan checkout) ──────────────────── */
+.checkout-wrapper{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);min-height:100vh}
+.left-col{display:flex;justify-content:flex-end;padding:32px 48px 56px}
+.left-inner{width:100%;max-width:560px}
+.right-col{background:var(--panel);border-left:1px solid #e1e1e1;padding:40px 48px}
+.right-inner{width:100%;max-width:460px;position:sticky;top:32px}
+.co-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+.brand-mark img{height:52px;width:auto;border-radius:50%}
+.back-link{font-size:13px;color:var(--muted);text-decoration:none}
+.back-link:hover{color:var(--ink);text-decoration:underline}
 
-.breadcrumb{padding:8px 28px;font-size:9px;letter-spacing:.1em;color:#bbb;display:flex;gap:8px;align-items:center;border-bottom:1px solid #f0f0f0}
-.breadcrumb a{color:#bbb;transition:color .15s}
-.breadcrumb a:hover{color:#111}
+.sec{margin-bottom:30px}
+.sec h2{font-size:21px;font-weight:500;letter-spacing:-.01em;margin-bottom:14px}
+.sec-sub{color:var(--muted);font-size:14px;margin:-8px 0 14px}
 
-.section-head{display:flex;justify-content:space-between;align-items:center;padding:14px 28px;font-size:10px;letter-spacing:.1em;border-bottom:1px solid #f0f0f0;border-top:1px solid #f0f0f0}
+/* ── meta strip → kartu lembut ──────────────────────── */
+.meta-strip{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:30px}
+.meta-cell{padding:14px 16px;border-left:1px solid var(--line);min-width:0}
+.meta-cell:first-child{border-left:none}
+.meta-label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
+.meta-value{font-size:14px;font-weight:600;word-break:break-word}
 
-.notice{padding:12px 28px;font-size:10px;letter-spacing:.06em;text-transform:none;line-height:1.6;border-bottom:1px solid #f0f0f0}
-.notice.error{color:#c0392b;background:#fdf0f0}
+/* ── notices ────────────────────────────────────────── */
+.notice{padding:12px 14px;font-size:14px;border-radius:var(--radius);margin-bottom:18px;line-height:1.5}
+.notice.error{color:#b3261e;background:#fdecea;border:1px solid #f5c6c2}
+.notice.warn{color:#7a5b00;background:#fff8e1;border:1px solid #f1e0a6}
 
-.payment-wrapper{display:grid;grid-template-columns:1fr 340px;border-top:none}
-.left-col{border-right:1px solid #f0f0f0}
-.right-col{position:sticky;top:44px;height:fit-content;max-height:calc(100vh - 44px);overflow-y:auto}
+/* ── panel & accordion ──────────────────────────────── */
+.panel{border:1px solid var(--line);border-radius:var(--radius);background:#fff;overflow:hidden;margin-bottom:18px}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px;border-bottom:1px solid var(--line);font-size:15px;font-weight:500}
+.panel-step{color:var(--muted);font-weight:400}
+.panel-title{flex:1}
+.panel-body{padding:18px 16px}
+.panel > .notice{margin:12px 16px 0}
 
-.panel{border-bottom:1px solid #f0f0f0}
-.panel-head{display:flex;justify-content:space-between;align-items:center;padding:14px 28px;font-size:10px;letter-spacing:.1em;border-bottom:1px solid #f0f0f0}
-.panel-step{color:#bbb}
-.panel-title{color:#111}
-.panel-body{padding:24px 28px}
-
-.meta-strip{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid #f0f0f0}
-.meta-cell{padding:16px 28px;border-right:1px solid #f0f0f0}
-.meta-cell:last-child{border-right:none}
-.meta-label{font-size:9px;letter-spacing:.14em;color:#bbb;display:block;margin-bottom:6px}
-.meta-value{font-size:11px;letter-spacing:.06em;font-weight:700;word-break:break-word}
-
-.accordion-item{border-bottom:1px solid #f0f0f0}
-.accordion-item:last-child{border-bottom:none}
-.accordion-trigger{width:100%;min-height:56px;border:0;background:transparent;display:flex;align-items:center;justify-content:space-between;padding:0 28px;cursor:pointer;font-size:10px;letter-spacing:.1em;color:#111;font-family:inherit;text-transform:uppercase;transition:background .15s}
-.accordion-trigger:hover{background:#fafafa}
-.accordion-left{display:flex;align-items:center;gap:14px}
-.accordion-icon{width:52px;height:32px;object-fit:contain;border:1px solid #f0f0f0;padding:5px;flex-shrink:0;background:#fafafa}
-.accordion-arrow{font-size:12px;color:#bbb;transition:transform .2s ease;line-height:1}
+.accordion-item{border-top:1px solid var(--line)}
+.accordion-item:first-child{border-top:none}
+.accordion-trigger{width:100%;min-height:56px;border:0;background:transparent;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 16px;font-size:15px;text-align:left;transition:background .12s}
+.accordion-trigger:hover{background:var(--soft)}
+.accordion-trigger:active{background:#ececec}
+.accordion-left{display:flex;align-items:center;gap:12px}
+.accordion-arrow{font-size:14px;color:var(--muted);line-height:1;transition:transform .35s var(--ease)}
 .accordion-item.open .accordion-arrow{transform:rotate(180deg)}
-.accordion-content{display:none;padding:0 28px 22px}
-.accordion-item.open .accordion-content{display:block}
+.accordion-content{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s var(--ease)}
+.accordion-item.open .accordion-content{grid-template-rows:1fr}
+.accordion-content > *{min-height:0;overflow:hidden;padding:0 16px;opacity:0;visibility:hidden;transition:opacity .25s ease,visibility 0s .35s}
+.accordion-item.open .accordion-content > *{opacity:1;visibility:visible;transition:opacity .25s ease}
+.accordion-content > :first-child{margin-top:0}
+.accordion-item.open .accordion-content > :last-child{padding-bottom:18px}
 
-.bank-row{display:grid;grid-template-columns:120px 1fr;gap:12px;padding:10px 0;border-top:1px solid #f0f0f0}
+.upload-note{font-size:14px;color:var(--muted);line-height:1.55;margin-bottom:14px}
+
+/* ── pembayaran aktif (QR / VA) ─────────────────────── */
+.bank-row{display:grid;grid-template-columns:130px 1fr;gap:12px;padding:12px 0;border-top:1px solid #ececec;align-items:baseline}
 .bank-row:first-child{border-top:none;padding-top:0}
-.bank-key{font-size:9px;letter-spacing:.12em;color:#bbb;padding-top:2px}
-.bank-value{font-size:13px;font-weight:700;letter-spacing:.04em;word-break:break-all}
+.bank-key{font-size:13px;color:var(--muted)}
+.bank-value{font-size:17px;font-weight:600;letter-spacing:.01em;word-break:break-all}
 .copy-row{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}
-.copy-status{margin-top:6px;font-size:9px;color:#2e7d32;letter-spacing:.08em;min-height:14px}
+.copy-status{margin-top:8px;font-size:13px;color:#1e6b34;min-height:18px}
+.countdown{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink)}
+.countdown.warn{color:#b3261e}
+.qr-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;margin:18px 0}
+#qrbox canvas,#qrbox img{width:240px!important;height:240px!important;border:1px solid var(--line);border-radius:var(--radius);padding:10px;background:#fff}
+.va-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.va-tile{cursor:pointer;position:relative}
+.va-tile input{position:absolute;opacity:0;pointer-events:none}
+.va-tile .tile{display:flex;align-items:center;justify-content:center;height:54px;border:1px solid var(--line);border-radius:var(--radius);padding:6px;font-size:13px;text-align:center;background:#fff;transition:border-color .12s,box-shadow .12s,transform .1s}
+.va-tile:active .tile{transform:scale(.97)}
+.va-tile input:checked + .tile{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink);background:var(--soft)}
+.va-tile input:focus-visible + .tile{box-shadow:0 0 0 2px #2a5db0}
+.bank-logo{max-height:28px;max-width:100%;object-fit:contain}
 
-.qris-label{font-size:9px;letter-spacing:.1em;color:#bbb;text-align:center;margin-bottom:14px}
-.qris-img{width:min(100%,240px);display:block;margin:0 auto;border:1px solid #f0f0f0;background:#fff;padding:1px}
-
-.upload-note{font-size:10px;letter-spacing:.04em;color:#888;text-transform:none;line-height:1.7;margin-bottom:18px}
-
-.btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 28px;background:#111;color:#fff;border:none;font-size:10px;letter-spacing:.14em;cursor:pointer;transition:background .15s;text-transform:uppercase;width:100%}
+/* ── buttons ────────────────────────────────────────── */
+.btn-primary{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:56px;padding:0 24px;background:var(--ink);color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:600;transition:background .15s,transform .1s;text-decoration:none}
 .btn-primary:hover{background:#000}
-.btn-primary:disabled{background:#ddd;cursor:not-allowed}
-.btn-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 18px;background:transparent;color:#111;border:1px solid #ddd;font-size:10px;letter-spacing:.1em;cursor:pointer;transition:border-color .15s;text-transform:uppercase}
-.btn-secondary:hover{border-color:#111}
-.submit-note{margin-top:10px;font-size:9px;color:#ccc;text-transform:none;letter-spacing:.04em;line-height:1.6}
+.btn-primary:active{transform:scale(.985)}
+.btn-primary:disabled{background:#cfcfcf;cursor:not-allowed;transform:none}
+.btn-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 18px;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:var(--radius);font-size:14px;transition:border-color .15s,transform .1s;text-decoration:none}
+.btn-secondary:hover{border-color:var(--ink)}
+.btn-secondary:active{transform:scale(.97)}
+.secure-note{font-size:12px;color:var(--muted);margin-top:12px}
 
-.summary-head{display:flex;justify-content:space-between;align-items:center;padding:14px 28px;font-size:10px;letter-spacing:.1em;border-bottom:1px solid #f0f0f0}
-.summary-body{padding:20px 28px}
-.total-row{display:flex;justify-content:space-between;font-size:10px;padding:5px 0;color:#888;letter-spacing:.06em}
-.total-row.grand{color:#111;padding-top:12px;border-top:1px solid #f0f0f0;margin-top:8px;letter-spacing:.08em}
-
+/* ── ringkasan kanan (sama dengan checkout) ─────────── */
+.summary-toggle{display:none}
+.summary-body{display:grid;grid-template-rows:1fr}
+.summary-inner{min-height:0;overflow:visible}
+.cart-item-row{display:grid;grid-template-columns:64px 1fr auto;gap:14px;align-items:center;margin-bottom:16px}
+.cart-thumb-wrap{position:relative;width:64px;height:64px}
+.cart-thumb{width:64px;height:64px;object-fit:contain;border-radius:12px;border:1px solid #e6e6e6;background:#fff;padding:3px}
+.cart-qty-badge{position:absolute;top:-8px;right:-8px;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--ink);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center}
+.cart-item-name{font-size:14px;font-weight:500;line-height:1.3}
+.cart-item-meta{font-size:12.5px;color:var(--muted);margin-top:2px}
+.cart-item-price{font-size:14px;text-align:right}
+.totals-block{margin-top:22px;padding-top:6px}
+.total-row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;font-size:14px}
+.total-row span:last-child{text-align:right}
+.total-row.muted span:last-child{color:var(--muted)}
+.total-row.grand{padding-top:14px;font-size:19px;font-weight:500}
+.total-row.grand .cur{font-size:12px;color:var(--muted);margin-right:6px;font-weight:400}
+.total-row.grand strong{font-size:22px;font-weight:600}
+.summary-note{font-size:12px;color:var(--muted);margin-top:8px}
+.steps-block{margin-top:26px;padding-top:20px;border-top:1px solid #e6e6e6}
+.steps-block h3{font-size:15px;font-weight:500;margin-bottom:12px}
 .steps-list{list-style:none;counter-reset:step;display:flex;flex-direction:column;gap:12px}
-.steps-list li{counter-increment:step;display:grid;grid-template-columns:28px 1fr;gap:12px;align-items:start;font-size:10px;color:#555;text-transform:none;letter-spacing:.04em;line-height:1.6}
-.steps-list li::before{content:counter(step,decimal-leading-zero);width:28px;height:28px;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;letter-spacing:.1em;flex-shrink:0}
+.steps-list li{counter-increment:step;display:grid;grid-template-columns:26px 1fr;gap:12px;align-items:start;font-size:13px;color:#555;line-height:1.55}
+.steps-list li::before{content:counter(step);width:26px;height:26px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+.panel-body .steps-list{margin-top:18px;padding-top:16px;border-top:1px solid #ececec}
 
-.toast-container{position:fixed;bottom:24px;right:24px;z-index:200;display:flex;flex-direction:column;gap:6px;pointer-events:none}
-.toast{background:#111;color:#fff;padding:10px 16px;font-size:10px;letter-spacing:.1em;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none;max-width:260px}
-.toast.show{opacity:1;transform:translateY(0)}
-
-.footer{padding:28px;border-top:1px solid #f0f0f0}
-.footer-copy{font-size:9px;color:#bbb;letter-spacing:.08em;text-transform:none;text-align:center}
+.footer{margin-top:36px;font-size:12px;color:var(--muted)}
 
 @media(max-width:900px){
-  .payment-wrapper{grid-template-columns:1fr}
-  .left-col{border-right:none}
-  .right-col{position:static;max-height:none;border-top:1px solid #f0f0f0}
-  .meta-strip{grid-template-columns:1fr 1fr}
-  .meta-cell:nth-child(3){border-top:1px solid #f0f0f0;border-right:none}
+  .checkout-wrapper{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
+  .left-col,.left-inner{display:contents}
+  .left-inner>*{order:2;margin-left:20px;margin-right:20px}
+  .left-inner>.co-head{order:0;margin-top:20px;margin-bottom:16px}
+  .left-inner>.footer{margin-bottom:max(36px,env(safe-area-inset-bottom))}
+  .right-col{order:1;background:var(--panel);border-left:none;border-top:1px solid #e1e1e1;border-bottom:1px solid #e1e1e1;padding:0;margin-bottom:24px}
+  .right-inner{position:static;max-width:none}
+  .summary-toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:58px;padding:0 20px;background:transparent;border:none;text-align:left;font-size:14px;color:#2a5db0}
+  .summary-toggle:active{background:rgba(0,0,0,.04)}
+  .summary-toggle-l{display:inline-flex;align-items:center;gap:8px}
+  .summary-toggle .chev{transition:transform .4s var(--ease)}
+  .summary-toggle[aria-expanded=true] .chev{transform:rotate(180deg)}
+  .summary-toggle-r{display:inline-flex;align-items:baseline;gap:6px;color:var(--ink)}
+  .summary-toggle-r .cur{font-size:11px;color:var(--muted)}
+  .summary-toggle-r strong{font-size:17px;font-weight:600}
+  .summary-body{grid-template-rows:0fr;transition:grid-template-rows .4s var(--ease)}
+  .summary-body.is-open{grid-template-rows:1fr}
+  .summary-inner{overflow:hidden;padding:0 20px;opacity:0;transition:opacity .25s ease}
+  .summary-body.is-open .summary-inner{opacity:1;padding-bottom:20px;padding-top:4px}
+  .summary-body:not(.is-open) .summary-inner{visibility:hidden;transition:opacity .2s ease,visibility 0s .4s}
+  .totals-block{border-top:1px solid #e6e6e6;padding-top:12px}
 }
 @media(max-width:560px){
-  .navbar{padding:0 18px}
-  .breadcrumb{padding:8px 18px}
-  .section-head{padding:12px 18px}
-  .panel-head{padding:12px 18px}
-  .panel-body{padding:18px 18px}
-  .accordion-trigger{padding:0 18px}
-  .accordion-content{padding:0 18px 18px}
-  .summary-head{padding:12px 18px}
-  .summary-body{padding:16px 18px}
-  .notice{padding:10px 18px}
   .meta-strip{grid-template-columns:1fr}
-  .meta-cell{border-right:none!important;border-top:1px solid #f0f0f0}
+  .meta-cell{border-left:none;border-top:1px solid var(--line)}
   .meta-cell:first-child{border-top:none}
-  .bank-row{grid-template-columns:1fr;gap:4px}
+  .bank-row{grid-template-columns:1fr;gap:2px}
   .copy-row{flex-direction:column}
   .btn-secondary{width:100%}
-  .toast-container{right:12px;bottom:12px;left:12px}
-  .toast{max-width:100%}
-  .footer{padding:20px 18px}
+  .va-grid{grid-template-columns:repeat(2,1fr)}
 }
-.countdown{font-size:13px;letter-spacing:.1em;font-weight:700}
-.countdown.warn{color:#c0392b}
-.qr-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;margin:18px 0}
-#qrbox canvas,#qrbox img{width:240px!important;height:240px!important;border:1px solid #f0f0f0;padding:8px;background:#fff}
-.va-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
-.va-tile{cursor:pointer}
-.va-tile input{position:absolute;opacity:0;pointer-events:none}
-.va-tile .tile{display:flex;align-items:center;justify-content:center;height:52px;border:1px solid #ddd;padding:6px;font-size:10px;letter-spacing:.08em;text-align:center;transition:border-color .15s}
-.va-tile input:checked + .tile{border-color:#111;box-shadow:inset 0 0 0 1px #111}
-.bank-logo{max-height:28px;max-width:100%;object-fit:contain}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important}
+}
 @keyframes pageFadeIn{from{opacity:0}to{opacity:1}}
   </style>
   <link rel="stylesheet" href="assets/css/apple.css?v=<?= @filemtime(__DIR__ . '/assets/css/apple.css') ?>">
@@ -219,116 +254,98 @@ button{cursor:pointer}
 <body>
   <?php if (file_exists(__DIR__ . '/loader.php')) include_once 'loader.php'; ?>
 
-  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+  <div class="checkout-wrapper">
 
-  <header class="navbar">
-    <div class="nav-left">
-      <a href="cart.php" class="nav-btn">← Cart</a>
-    </div>
-    <div class="nav-center">
-      <a href="index.php" class="brand-mark">
-        <img src="<?= htmlspecialchars($brandLogo) ?>" alt="<?= htmlspecialchars($brandName) ?>">
-      </a>
-    </div>
-    <div class="nav-right">
-      <a href="index.php" class="nav-btn">Shop</a>
-    </div>
-  </header>
+    <!-- ── LEFT: PAYMENT ─────────────────────────────── -->
+    <div class="left-col"><div class="left-inner">
 
-  <nav class="breadcrumb" aria-label="Breadcrumb">
-    <a href="index.php">Home</a>
-    <span>›</span>
-    <a href="cart.php">Cart</a>
-    <span>›</span>
-    <a href="checkout.php">Checkout</a>
-    <span>›</span>
-    <strong>Payment</strong>
-  </nav>
+      <header class="co-head">
+        <a href="index.php" class="brand-mark"><img src="<?= htmlspecialchars($brandLogo) ?>" alt="<?= htmlspecialchars($brandName) ?>"></a>
+        <a href="shop.php" class="back-link">← Shop</a>
+      </header>
 
-  <div class="section-head">
-    <span>Payment Confirmation</span>
-    <span><?= htmlspecialchars($grandTotalFmt) ?></span>
-  </div>
+      <?php if ($error !== ''): ?>
+        <div class="notice error" role="alert"><?= htmlspecialchars($error) ?></div>
+      <?php endif; ?>
 
-  <?php if ($error !== ''): ?>
-    <div class="notice error" role="alert"><?= htmlspecialchars($error) ?></div>
-  <?php endif; ?>
-
-  <?php if ($orderCurrency !== $currentCurrency): ?>
-    <div class="notice" style="background:#fff8e1;color:#7a5b00" role="status">
-      This order was created in <strong><?= htmlspecialchars($orderCurrency) ?></strong>. Values shown are converted to <strong><?= htmlspecialchars($currentCurrency) ?></strong> for display only — please pay the original amount in <?= htmlspecialchars($orderCurrency) ?> as stored in our records.
-    </div>
-  <?php endif; ?>
-
-  <div class="meta-strip">
-    <div class="meta-cell">
-      <span class="meta-label">Order Number</span>
-      <span class="meta-value"><?= $orderNum ?></span>
-    </div>
-    <div class="meta-cell">
-      <span class="meta-label">Grand Total</span>
-      <span class="meta-value"><?= htmlspecialchars($grandTotalFmt) ?></span>
-    </div>
-    <div class="meta-cell">
-      <span class="meta-label">Payment Status</span>
-      <span class="meta-value"><?= htmlspecialchars($paymentStatus) ?></span>
-    </div>
-  </div>
-
-  <div class="payment-wrapper">
-    <div class="left-col">
-
-      <?php include __DIR__ . '/includes/kasera_payment_panel.php'; ?>
-
-
-    </div>
-
-    <aside class="right-col" aria-label="Order summary">
-      <div class="summary-head">
-        <span>Summary</span>
-        <span><?= htmlspecialchars($grandTotalFmt) ?></span>
-      </div>
-      <div class="summary-body">
-        <div class="total-row">
-          <span>Order</span>
-          <span><?= $orderNum ?></span>
+      <?php if ($orderCurrency !== $currentCurrency): ?>
+        <div class="notice warn" role="status">
+          This order was created in <strong><?= htmlspecialchars($orderCurrency) ?></strong>. Values are converted to <strong><?= htmlspecialchars($currentCurrency) ?></strong> for display only — please pay the original amount in <?= htmlspecialchars($orderCurrency) ?> as stored in our records.
         </div>
-        <div class="total-row">
-          <span>Subtotal</span>
-          <span><?= htmlspecialchars(formatMoney($subtotalDisplay, $currentCurrency)) ?></span>
-        </div>
-        <div class="total-row">
-          <span>Shipping</span>
-          <span><?= htmlspecialchars(formatMoney($shippingDisplay, $currentCurrency)) ?></span>
-        </div>
-        <div class="total-row grand">
-          <span>Total</span>
-          <span><?= htmlspecialchars($grandTotalFmt) ?></span>
-        </div>
-        <div class="total-row" style="margin-top:8px">
-          <span>Status</span>
-          <span><?= htmlspecialchars($paymentStatus) ?></span>
+      <?php endif; ?>
+
+      <section class="sec" aria-label="Payment">
+        <h2>Payment</h2>
+
+        <div class="meta-strip">
+          <div class="meta-cell">
+            <span class="meta-label">Order</span>
+            <span class="meta-value"><?= $orderNum ?></span>
+          </div>
+          <div class="meta-cell">
+            <span class="meta-label">Total</span>
+            <span class="meta-value"><?= htmlspecialchars($grandTotalFmt) ?></span>
+          </div>
+          <div class="meta-cell">
+            <span class="meta-label">Status</span>
+            <span class="meta-value"><?= htmlspecialchars($paymentStatus) ?></span>
+          </div>
         </div>
 
-        <div style="margin-top:24px;border-top:1px solid #f0f0f0;padding-top:20px">
-          <div style="font-size:9px;letter-spacing:.14em;color:#bbb;margin-bottom:14px">Instructions</div>
+        <?php include __DIR__ . '/includes/kasera_payment_panel.php'; ?>
+
+        <p class="secure-note">🔒 Your data is encrypted and secure. We never store your payment details.</p>
+      </section>
+
+      <footer class="footer" aria-label="Site footer">© <?= date('Y') ?> <?= htmlspecialchars($brandName) ?>. All rights reserved.</footer>
+    </div></div>
+
+    <!-- ── RIGHT: SUMMARY ────────────────────────────── -->
+    <aside class="right-col" aria-label="Order summary"><div class="right-inner">
+      <button type="button" class="summary-toggle" id="summaryToggle" aria-expanded="false" aria-controls="summaryBody">
+        <span class="summary-toggle-l"><span id="summaryToggleLabel">Show order summary</span>
+          <svg class="chev" width="12" height="8" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
+        <span class="summary-toggle-r"><span class="cur"><?= htmlspecialchars($currentCurrency) ?></span><strong><?= htmlspecialchars($grandTotalFmt) ?></strong></span>
+      </button>
+
+      <div class="summary-body" id="summaryBody"><div class="summary-inner">
+        <?php foreach ($orderItems as $item): ?>
+          <div class="cart-item-row">
+            <div class="cart-thumb-wrap">
+              <?php if (!empty($item['thumbnail'])): ?>
+                <img class="cart-thumb" src="<?= htmlspecialchars((string)$item['thumbnail']) ?>" alt="<?= htmlspecialchars((string)$item['product_name']) ?>" loading="lazy">
+              <?php endif; ?>
+              <span class="cart-qty-badge"><?= (int)$item['quantity'] ?></span>
+            </div>
+            <div>
+              <div class="cart-item-name"><?= htmlspecialchars((string)$item['product_name']) ?></div>
+              <?php if (!empty($item['size_name'])): ?>
+                <div class="cart-item-meta"><?= htmlspecialchars((string)$item['size_name']) ?></div>
+              <?php endif; ?>
+            </div>
+            <div class="cart-item-price"><?= htmlspecialchars(formatMoney(convertForDisplay((float)$item['line_total'], $orderCurrency, $currentCurrency, $usdRateFromIdr), $currentCurrency)) ?></div>
+          </div>
+        <?php endforeach; ?>
+
+        <div class="totals-block">
+          <div class="total-row"><span>Subtotal</span><span><?= htmlspecialchars(formatMoney($subtotalDisplay, $currentCurrency)) ?></span></div>
+          <div class="total-row"><span>Shipping</span><span><?= htmlspecialchars(formatMoney($shippingDisplay, $currentCurrency)) ?></span></div>
+          <div class="total-row grand"><span>Total</span><span><span class="cur"><?= htmlspecialchars($currentCurrency) ?></span><strong><?= htmlspecialchars($grandTotalFmt) ?></strong></span></div>
+          <div class="total-row muted"><span>Order</span><span><?= $orderNum ?></span></div>
+        </div>
+
+        <div class="steps-block">
+          <h3>How it works</h3>
           <ol class="steps-list">
-            <li>Pay with Bank Transfer or QRIS.</li>
-            <li>Transfer the exact total amount shown above.</li>
-            <li>Save a clear screenshot of your receipt.</li>
-            <li>Upload proof using the form on the left.</li>
-            <li>We'll verify and confirm your payment as soon as possible.</li>
+            <li>Choose QRIS, a bank virtual account, or another method.</li>
+            <li>Pay the exact total shown.</li>
+            <li>Your payment is confirmed automatically — no receipt upload needed.</li>
           </ol>
         </div>
+      </div></div>
+    </div></aside>
 
-        <p style="margin-top:20px;font-size:9px;color:#ccc;letter-spacing:.04em;text-transform:none;line-height:1.6">🔒 Your data is encrypted and secure.</p>
-      </div>
-    </aside>
   </div>
-
-  <footer class="footer" aria-label="Site footer">
-    <p class="footer-copy">&copy; 2026 ALBRYCIA — Development by Cantum Studio</p>
-  </footer>
 
   <?php include __DIR__ . '/includes/kasera_payment_script.php'; ?>
 
@@ -348,6 +365,14 @@ button{cursor:pointer}
           this.setAttribute('aria-expanded', 'true');
         }
       });
+    });
+
+    var btn = document.getElementById('summaryToggle'), body = document.getElementById('summaryBody');
+    var label = document.getElementById('summaryToggleLabel');
+    btn.addEventListener('click', function () {
+      var open = body.classList.toggle('is-open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (label) label.textContent = open ? 'Hide order summary' : 'Show order summary';
     });
   })();
   </script>

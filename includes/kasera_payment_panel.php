@@ -84,7 +84,7 @@ $amountIdrText  = formatMoney((float)$kasera['amountIdr'], 'IDR');
       <span class="panel-title">Instant Payment (Auto-Confirmed)</span>
     </div>
     <?php if ($orderCurrency === 'USD'): ?>
-      <div class="notice" style="background:#fff8e1;color:#7a5b00">QRIS, Virtual Account and e-wallets are charged in IDR: <strong><?= htmlspecialchars($amountIdrText) ?></strong>.</div>
+      <div class="notice warn">QRIS, Virtual Account and e-wallets are charged in IDR: <strong><?= htmlspecialchars($amountIdrText) ?></strong>.</div>
     <?php endif; ?>
 
     <div class="accordion">
@@ -95,11 +95,13 @@ $amountIdrText  = formatMoney((float)$kasera['amountIdr'], 'IDR');
             <span class="accordion-arrow" aria-hidden="true">⌄</span>
           </button>
           <div class="accordion-content">
+            <div>
             <p class="upload-note">Scan with any e-wallet or mobile banking app. Confirmed automatically.</p>
             <form method="POST" data-pay>
               <input type="hidden" name="kasera_method" value="qris">
               <button type="submit" class="btn-primary">Pay with QRIS</button>
             </form>
+            </div>
           </div>
         </div>
       <?php endif; ?>
@@ -111,6 +113,7 @@ $amountIdrText  = formatMoney((float)$kasera['amountIdr'], 'IDR');
             <span class="accordion-arrow" aria-hidden="true">⌄</span>
           </button>
           <div class="accordion-content">
+            <div>
             <p class="upload-note">Choose your bank to get a virtual account number. Confirmed automatically.</p>
             <form method="POST" data-pay data-needs="bank" id="vaForm">
               <div class="va-grid">
@@ -123,6 +126,7 @@ $amountIdrText  = formatMoney((float)$kasera['amountIdr'], 'IDR');
               </div>
               <button type="submit" class="btn-primary" id="vaBtn" disabled>Select a bank</button>
             </form>
+            </div>
           </div>
         </div>
       <?php endif; ?>
@@ -133,11 +137,13 @@ $amountIdrText  = formatMoney((float)$kasera['amountIdr'], 'IDR');
           <span class="accordion-arrow" aria-hidden="true">⌄</span>
         </button>
         <div class="accordion-content">
+            <div>
           <p class="upload-note">You will be redirected to a secure page to choose another payment method.</p>
           <form method="POST" data-pay>
             <input type="hidden" name="kasera_method" value="<?= KASERA_OTHER_METHODS ?>">
             <button type="submit" class="btn-primary">Continue</button>
           </form>
+            </div>
         </div>
       </div>
     </div>

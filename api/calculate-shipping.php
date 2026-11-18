@@ -33,6 +33,7 @@ register_shutdown_function(function () {
 });
 
 $config = require __DIR__ . '/../config/rajaongkir.php';
+require_once __DIR__ . '/../includes/shipping_quote.php';
 
 function normalizeRajaOngkirServices(array $raw): array
 {
@@ -77,9 +78,17 @@ function normalizeRajaOngkirServices(array $raw): array
     return $normalized;
 }
 
+function signServices(array $services, string $mode, string $destination, string $courier): array
+{
+    foreach ($services as &$row) {
+        $row['token'] = shippingQuoteToken($mode, $destination, $courier, (string)$row['service'], (int)round((float)$row['cost']));
+    }
+    return $services;
+}
+
 $destination = trim((string) ($_POST['destination'] ?? ''));
 $courier = trim((string) ($_POST['courier'] ?? ''));
-$weight = (int) ($_POST['weight'] ?? 0);
+$weight = 0; // berat tidak boleh ditentukan klien (memengaruhi harga)
 $price = trim((string) ($_POST['price'] ?? 'lowest'));
 
 if ($destination === '' || $courier === '') {
@@ -160,7 +169,7 @@ if (!is_array($data)) {
 }
 
 $success = $httpCode >= 200 && $httpCode < 300;
-$normalizedServices = normalizeRajaOngkirServices($data);
+$normalizedServices = signServices(normalizeRajaOngkirServices($data), 'international', $destination, $courier);
 
 echo json_encode([
     'success' => $success,
