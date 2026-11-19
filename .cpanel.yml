@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/albj3628/public_html/
+    - /bin/rsync -a --exclude='.git' --exclude='.github' --exclude='.cpanel.yml' --exclude='docs' --exclude='dev' --exclude='_unused' --exclude='config/secrets.php' --exclude='config/database.php' --exclude='config/env.php' --exclude='config/admin_auth.php' --exclude='config/rajaongkir.php' --exclude='uploads' --exclude='invoices' ./ $DEPLOYPATH
